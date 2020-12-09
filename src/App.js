@@ -8,13 +8,12 @@ import Signin from './components/Signin/Signin';
 import Register from './components/Register/Register';
 import Particles from 'react-particles-js';
 import FaceRecognition from './components/Facerecognition/FaceRecognition';
-import Clarifai from 'clarifai';
-import { Component } from 'react';
+import React, { Component } from 'react';
 
 
-const app = new Clarifai.App({
-  apiKey: 'ded2f527db9840f484574ef63aebe113'
- });
+
+
+ const ref = React.createRef();
 
 const particleOptions = {
   "particles": {
@@ -39,26 +38,26 @@ const particleOptions = {
   }
 }
 
+const initialState = {
+  input: '',
+  imageUrl: '',
+  box: {},
+  route: 'signin',
+  isSignedIn: false,
+  user: {
+    id: "",
+    name: "",
+    email: "",
+    entries: 0,
+    joined: ''
+}
+}
 
-// function App() {
   class App extends Component {
     constructor(){
       super();
-      this.state = {
-        input: '',
-        imageUrl: '',
-        box: {},
-        route: 'signin',
-        isSignedIn: false,
-        user: {
-          id: "",
-          name: "",
-          email: "",
-          entries: 0,
-          joined: ''
-      }
-      }
-    }
+      this.state = initialState;
+    } 
 
     loadUser = (data) => {
       this.setState({user: {
@@ -95,7 +94,7 @@ const particleOptions = {
 
     onRouteChange = (route) => {
       if(route ==='signout') {
-        this.setState({isSignedIn: false})
+        this.setState(initialState)
       } else if(route === 'home') {
         this.setState({isSignedIn: true})
       }
@@ -103,13 +102,18 @@ const particleOptions = {
     }
 
     onPictureSubmit = () => {
-      this.setState({imageUrl: this.state.input})
-      app.models.predict(
-        Clarifai.FACE_DETECT_MODEL,
-        this.state.input)
+      this.setState({imageUrl: this.state.input});
+      fetch('https://whispering-inlet-89711.herokuapp.com/imageUrl', {
+            method: 'post',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                input: this.state.input
+            })
+        })
+        .then(response => response.json())
         .then(response => { 
           if(response) {
-            fetch('http://localhost:3000/image', {
+            fetch('https://whispering-inlet-89711.herokuapp.com/image', {
               method: 'put',
               headers: {'Content-Type': 'application/json'},
               body: JSON.stringify({
@@ -120,6 +124,7 @@ const particleOptions = {
           .then(count => {
             this.setState(Object.assign(this.state.user, {entries: count}))
           })
+          .catch(console.log);
           }
           this.displayFaceBox(this.calculateFaceLocation(response))
       })
@@ -135,7 +140,7 @@ const particleOptions = {
           <Navigation isSignedIn={isSignedIn} onRouteChange={this.onRouteChange} />
           { route === 'home'
             ?  <div>
-                <Logo />
+                <Logo ref={ref} />
                 <Rank name = {this.state.user.name} entries = {this.state.user.entries} />
                 <ImageLinkForm 
                 onInputChange={this.onInputChange} 
